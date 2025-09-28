@@ -57,7 +57,7 @@ img {
     font-weight: 500;
 }
 
-#play-again-btn {
+#start-btn {
     background-color: #fff;
     margin-top: 1rem;
     padding: 0.65rem 0.8rem;
@@ -66,4 +66,5 @@ img {
     font-weight: 500;
     font-family: 'Poppins', sans-serif;
     font-size: 1.2rem;
+    border-radius: 10px;
 }
