@@ -4,6 +4,9 @@ This is a speech recognition app built with semantic HTML, modern CSS (Flexbox/G
 
 ## Image of The Project
 
+![Snip 2025-09-28 16 25 09](https://github.com/user-attachments/assets/6d57ede9-24ab-4469-9d2b-78e53b400d59)
+
+
 ## Authors
 
 - [@Chabi Francesca Seopa](https://www.github.com/charbileigh)
