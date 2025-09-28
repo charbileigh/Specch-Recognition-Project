@@ -1,6 +1,6 @@
 # Speech Recognition App
 
-This is a speech recognition app built with semantic HTML, modern CSS (Flexbox/Grid), and a tiny bit of JS for the mobile nav.
+This is a speech recognition app built with semantic HTML, modern CSS (Flexbox/Grid), and JS.
 
 ## Image of The Project
 
