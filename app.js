@@ -1,134 +1,83 @@
-// Elements
+// elements
 const messageDiv = document.getElementById('message');
 const resultText  = document.getElementById('result');
 const startBtn    = document.getElementById('start-btn');
 
-// Days data
+// data
 const daysOfTheWeek = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-const pickRandomDay = () => daysOfTheWeek[Math.floor(Math.random() * daysOfTheWeek.length)];
-let randomDay = pickRandomDay();
+let randomDay = daysOfTheWeek[Math.floor(Math.random() * daysOfTheWeek.length)];
 
-// SpeechRecognition feature-detect
+// speech setup (feature detect)
 window.SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-const supported = Boolean(window.SpeechRecognition);
+if (!window.SpeechRecognition) {
+  resultText.innerHTML = `<span style="color:#F54A19;">Your browser doesn't support SpeechRecognition.</span>`;
+}
 
-let recog = null;
+const recog = window.SpeechRecognition ? new window.SpeechRecognition() : null;
 let gameOver = false;
 let started  = false;
 
-// Guard: if no SpeechRecognition support
-if (!supported) {
-  if (resultText) {
-    resultText.innerHTML = `<span style="color:#F54A19;">Your browser doesn't support Speech Recognition.</span>`;
-  }
-} else {
-  recog = new window.SpeechRecognition();
-  recog.lang = 'en-US';
-  recog.interimResults = false;     // only final results
-  recog.maxAlternatives = 1;
-}
-
-// Auto-restart handler (only while game active)
-function autoRestart() {
-  if (!gameOver && started) {
-    try { recog.start(); } catch {}
-  }
-}
-
 if (recog) {
-  recog.addEventListener('result', onResult);
-  recog.addEventListener('end', autoRestart);
-}
+  // Optional config
+  recog.lang = 'en-US';
+  recog.interimResults = false;
+  recog.maxAlternatives = 1;
 
-// Start on user gesture (Play button)
-if (startBtn) {
-  startBtn.addEventListener('click', () => {
-    if (!recog || started) return;
-    started = true;
-    startBtn.disabled = true;
-    clearUI();
-    try { recog.start(); } catch {}
-  });
-} else {
-  // Fallback: if no start button exists, attempt to start on first user click anywhere
-  document.addEventListener('click', function once() {
-    if (!recog || started) return;
-    started = true;
-    try { recog.start(); } catch {}
-    document.removeEventListener('click', once);
+  recog.addEventListener('result', getUserSpeech);
+  recog.addEventListener('end', () => {
+    if (!gameOver && started) recog.start(); // auto-restart only while game is active
   });
 }
 
-// Handle speech results
-function onResult(e) {
-  const transcript = e.results[0][0].transcript;
-  showMessage(transcript);
-  checkDaysOfTheWeek(transcript);
-}
-
-// UI helpers
-function showMessage(message) {
-  if (!messageDiv) return;
-  messageDiv.innerHTML = `<div>You said: ${escapeHTML(message)}</div>`;
-}
-
-function clearUI() {
-  if (messageDiv) messageDiv.textContent = '';
-  if (resultText) resultText.textContent = '';
-}
-
-// Game logic
-function checkDaysOfTheWeek(message) {
-  if (!resultText) return;
-
-  const guess = message.trim().toLowerCase();
-  const target = randomDay.toLowerCase();
-
-  // Allow exact or substring match (e.g., "It's Tuesday")
-  const isMatch = guess === target || guess.includes(target);
-
-  if (isMatch && !gameOver) {
-    gameOver = true;
-
-    // Stop recognition and prevent auto-restart
-    try { recog.removeEventListener('end', autoRestart); } catch {}
-    try { recog.stop(); } catch {}
-
-    resultText.innerHTML =
-      `<span style="color:#A020F0;">Your guess is correct! (${randomDay})</span><br>
-       <button id="play-again-btn" type="button">Play Again</button>`;
-  } else if (!gameOver) {
-    resultText.innerHTML =
-      `<span style="color:#F54A19;">Oops! Incorrect. Try again.</span>`;
-  }
-}
-
-// Play again (reset state and immediately listen again)
-document.body.addEventListener('click', (e) => {
-  if (e.target && e.target.id === 'play-again-btn') {
-    gameOver = false;
-    randomDay = pickRandomDay();
-    clearUI();
-
-    // Reattach auto-restart and resume listening (this click counts as a gesture)
-    if (recog) {
-      try { recog.removeEventListener('end', autoRestart); } catch {}
-      try { recog.addEventListener('end', autoRestart); } catch {}
-      started = true; // keep session "active"
-      try { recog.start(); } catch {}
-    }
-
-    // If there is a start button, keep it disabled while active
-    if (startBtn) startBtn.disabled = true;
+// start on user gesture
+startBtn.addEventListener('click', () => {
+  if (!recog) return;
+  if (!started) {
+    started = true;
+    resultText.textContent = ''; // clear any previous message
+    recog.start();
+    startBtn.disabled = true;    // prevent double-starts
   }
 });
 
-// Basic HTML escape for safety when echoing user speech
-function escapeHTML(str) {
-  return String(str)
-    .replaceAll('&','&amp;')
-    .replaceAll('<','&lt;')
-    .replaceAll('>','&gt;')
-    .replaceAll('"','&quot;')
-    .replaceAll("'",'&#39;');
+// handle speech
+function getUserSpeech(e) {
+  const message = e.results[0][0].transcript;
+  showMessage(message);
 }
+
+// show & check
+function showMessage(message) {
+  messageDiv.innerHTML = `<div>You said: ${message}</div>`;
+  checkDaysOfTheWeek(message);
+}
+
+function checkDaysOfTheWeek(message) {
+  const guess = message.trim().toLowerCase();
+  const target = randomDay.toLowerCase();
+  const isMatch = guess === target || guess.includes(target);
+
+  if (isMatch) {
+    gameOver = true;
+    resultText.innerHTML = `
+      <span style="color: #A020F0;">Your guess is correct! (${randomDay})</span><br>
+     <button id="play-again-btn">Play Again</button>`
+    recog.stop(); // don't restart
+  } else {
+    resultText.innerHTML = `<span style="color: #F54A19;">Oops! Incorrect. Try again.</span>`;
+  }
+}
+
+// play again
+document.body.addEventListener('click', (e) => {
+  if (e.target.id === 'play-again-btn') {
+    // reset state without reloading (optional)
+    gameOver = false;
+    started = false;
+    startBtn.disabled = false;
+    messageDiv.textContent = '';
+    resultText.textContent = '';
+    randomDay = daysOfTheWeek[Math.floor(Math.random() * daysOfTheWeek.length)];
+  }
+});
+
